@@ -3,223 +3,254 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>心灵守护神 (调试版)</title>
+    <title>心灵守护神</title>
     <style>
-        /* 基础样式保持不变，只为了排查问题 */
-        :root { --primary-color: #7d5fff; --bg-gradient: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%); --glass-bg: rgba(255, 255, 255, 0.95); }
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg-gradient); min-height: 100vh; margin: 0; display: flex; justify-content: center; align-items: center; padding: 20px; color: #333; }
+        :root { --primary-color: #7d5fff; --bg-gradient: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%); --glass-bg: rgba(255, 255, 255, 0.8); }
+        body { font-family: 'PingFang SC', sans-serif; background: var(--bg-gradient); min-height: 100vh; margin: 0; display: flex; justify-content: center; align-items: center; padding: 20px; color: #333; overflow: hidden; }
         
         .container { 
             background: var(--glass-bg); 
+            backdrop-filter: blur(15px); 
+            -webkit-backdrop-filter: blur(15px); 
             border-radius: 24px; 
             padding: 30px; 
             width: 100%; 
             max-width: 450px; 
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1); 
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1); 
+            border: 1px solid rgba(255, 255, 255, 0.5); 
+            transition: all 0.3s; 
             position: relative; 
             min-height: 500px; 
             display: flex; 
             flex-direction: column; 
         }
 
-        /* 调试标签 - 如果看不到这个，说明缓存没更新 */
-        .debug-badge {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            background: #ff4757;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            z-index: 10000;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-
-        /* 顶部错误条 - 如果代码出错会显示 */
-        #error-bar {
-            position: fixed;
-            top: 0; left: 0; right: 0;
-            background: #ffa502;
-            color: white;
-            padding: 10px;
-            text-align: center;
-            font-size: 14px;
-            z-index: 10001;
-            display: none;
-        }
-
-        h1 { font-size: 22px; text-align: center; margin: 0 0 5px 0; color: #333; }
+        .progress-container { width: 100%; height: 6px; background: rgba(0,0,0,0.05); border-radius: 3px; margin-bottom: 30px; overflow: hidden; }
+        .progress-bar { height: 100%; background: var(--primary-color); width: 25%; border-radius: 3px; transition: width 0.4s ease; }
+        
+        h1 { font-size: 20px; text-align: center; margin-bottom: 5px; color: #4a4a4a; margin-top: 0; }
         p.subtitle { text-align: center; font-size: 13px; color: #666; margin-bottom: 20px; }
         
-        .step-content { display: none; flex: 1; flex-direction: column; animation: fadeIn 0.3s ease; }
-        .step-content.active { display: flex; }
+        .step-content { flex: 1; display: none; animation: fadeIn 0.5s ease forwards; }
+        .step-content.active { display: flex; flex-direction: column; }
         
-        label { font-weight: bold; margin-bottom: 15px; display: block; color: #444; }
-        textarea, input { width: 100%; padding: 15px; border: 1px solid #ccc; border-radius: 12px; font-size: 16px; box-sizing: border-box; margin-bottom: 10px; background: #fff; }
+        label { display: block; font-size: 16px; font-weight: 600; margin-bottom: 15px; color: #444; line-height: 1.5; }
+        
+        input, textarea { 
+            width: 100%; 
+            padding: 15px; 
+            border: 1px solid #ddd; 
+            border-radius: 12px; 
+            background: rgba(255, 255, 255, 0.9); 
+            font-size: 15px; 
+            box-sizing: border-box; 
+            -webkit-appearance: none; /* iOS 兼容 */
+        }
+        
         textarea { height: 120px; resize: none; }
+        input:focus, textarea:focus { border-color: var(--primary-color); outline: none; box-shadow: 0 0 0 3px rgba(125, 95, 255, 0.1); }
         
-        .btn-group { margin-top: auto; display: flex; gap: 10px; }
-        .btn { flex: 1; padding: 15px; border: none; border-radius: 50px; background: var(--primary-color); color: white; font-size: 16px; font-weight: bold; }
-        .btn-secondary { background: #f1f2f6; color: #333; }
+        .btn-group { margin-top: auto; display: flex; gap: 15px; padding-top: 20px; }
         
-        /* 强制显示 */
-        .loading-mask, #result-area { display: none; position: absolute; inset: 0; background: rgba(255,255,255,0.98); border-radius: 24px; flex-direction: column; justify-content: center; align-items: center; z-index: 900; }
-        .guardian-img { width: 100%; border-radius: 12px; display: block; }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .btn { 
+            flex: 1; 
+            padding: 15px; 
+            border-radius: 50px; 
+            font-size: 16px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            border: none; 
+            transition: 0.2s; 
+            background: var(--primary-color); 
+            color: white; 
+            box-shadow: 0 5px 15px rgba(125, 95, 255, 0.3); 
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn-secondary { background: rgba(255,255,255,0.6); color: #666; border: 1px solid #ddd; box-shadow: none; }
+        
+        #result-area { display: none; text-align: center; animation: fadeIn 0.5s; }
+        .guardian-img { width: 100%; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15); display: block; }
+        
+        .loading-mask { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255, 255, 255, 0.95); border-radius: 24px; display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 999; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        
+        .shake { animation: shake 0.3s; }
     </style>
-    <script>
-        // 🚨 全局错误捕获器：只要代码有错，立刻在屏幕顶端显示
-        window.onerror = function(msg, url, line) {
-            const bar = document.getElementById('error-bar');
-            bar.style.display = 'block';
-            bar.innerHTML = "⚠️ 代码运行出错: " + msg + " (行号:" + line + ")";
-            return false;
-        };
-    </script>
 </head>
 <body>
-    <div class="debug-badge">Debug: v3.0</div>
-    <div id="error-bar"></div>
-
     <div class="container">
+        <div class="progress-container"><div class="progress-bar" id="progress-bar"></div></div>
+
         <div id="input-view" style="flex:1; display:flex; flex-direction:column;">
             <h1>🔮 心灵守护神</h1>
-            <p class="subtitle">调试模式：如果不跳转请截图给我</p>
+            <p class="subtitle">回答 4 个问题，连接你的潜意识</p>
 
             <div class="step-content active" id="step1">
                 <label>1/4. 请描述一个最近发生的、具体的、让你情绪波动的事件？</label>
-                <textarea id="q1" placeholder="在这里输入..."></textarea>
+                <textarea id="q1" placeholder="例：因为生活琐事经常吵架，在闹离婚..."></textarea>
                 <div class="btn-group">
-                    <button class="btn" onclick="tryNext(2)">下一步</button>
+                    <button class="btn" onclick="nextStep(2)">下一步</button>
                 </div>
             </div>
 
             <div class="step-content" id="step2">
                 <label>2/4. 回到那个场景，你心里最强烈的那个感觉是什么？</label>
-                <input type="text" id="q2">
+                <input type="text" id="q2" placeholder="例：焦虑、害怕、无助">
                 <div class="btn-group">
-                    <button class="btn btn-secondary" onclick="tryPrev(1)">上一步</button>
-                    <button class="btn" onclick="tryNext(3)">下一步</button>
+                    <button class="btn btn-secondary" onclick="prevStep(1)">上一步</button>
+                    <button class="btn" onclick="nextStep(3)">下一步</button>
                 </div>
             </div>
 
             <div class="step-content" id="step3">
                 <label>3/4. 当时你脑子里闪过的第一个念头是什么？</label>
-                <input type="text" id="q3">
+                <input type="text" id="q3" placeholder="例：我搞不定了，想逃避">
                 <div class="btn-group">
-                    <button class="btn btn-secondary" onclick="tryPrev(2)">上一步</button>
-                    <button class="btn" onclick="tryNext(4)">下一步</button>
+                    <button class="btn btn-secondary" onclick="prevStep(2)">上一步</button>
+                    <button class="btn" onclick="nextStep(4)">下一步</button>
                 </div>
             </div>
 
             <div class="step-content" id="step4">
                 <label>4/4. 针对这件事情，你现在最想做的是什么？</label>
-                <input type="text" id="q4">
+                <input type="text" id="q4" placeholder="例：找个安静的地方躲起来">
                 <div class="btn-group">
-                    <button class="btn btn-secondary" onclick="tryPrev(3)">上一步</button>
+                    <button class="btn btn-secondary" onclick="prevStep(3)">上一步</button>
                     <button class="btn" onclick="submitFlow()">✨ 开始显化</button>
                 </div>
             </div>
         </div>
 
-        <div class="loading-mask" id="loading-view" style="display:none;">
-            <p>正在连接潜意识...</p>
+        <div class="loading-mask" id="loading-view">
+            <div class="spinner"></div>
+            <p style="color:#666; font-size:14px; font-weight:bold">正在连接潜意识...</p>
+            <p style="color:#999; font-size:12px; margin-top:5px">AI 正在绘制你的守护神<br>约需 30 秒，请保持深呼吸</p>
         </div>
 
         <div id="result-area">
-            <h2>你的守护神已降临</h2>
-            <img id="final-image" class="guardian-img" src="">
-            <button class="btn btn-secondary" onclick="location.reload()" style="margin-top:20px;">再试一次</button>
+            <h2 style="font-size:18px; color:#4a4a4a; margin-top:10px">你的守护神已降临</h2>
+            <img id="final-image" class="guardian-img" src="" alt="Guardian">
+            <p style="font-size:12px; color:#888;">长按图片即可保存到手机</p>
+            <button class="btn btn-secondary" onclick="reset()">再试一次</button>
         </div>
     </div>
 
     <script>
-        // 页面加载完成后，测试 JS 是否运行
-        window.onload = function() {
-            console.log("JS Loaded");
-            // 注意：如果你不想每次刷新都弹窗，可以把下面这行注释掉，但第一次调试建议保留
-            // alert("✅ 系统已就绪！如果看到这个，说明代码没问题。");
-        }
-
         let currentStep = 1;
 
-        function tryNext(target) {
-            const inputId = 'q' + currentStep;
-            const el = document.getElementById(inputId);
-            
-            // 简单粗暴的调试反馈
-            if (!el) {
-                alert("❌ 严重错误：找不到输入框 " + inputId);
-                return;
-            }
-
-            if (!el.value.trim()) {
-                alert("👉 请先填写内容才能下一步哦");
-                return;
-            }
-
-            // 切换逻辑
-            document.getElementById('step' + currentStep).classList.remove('active');
-            document.getElementById('step' + target + '').classList.add('active');
-            currentStep = target;
+        // 更新进度条
+        function updateProgress(step) {
+            const bar = document.getElementById('progress-bar');
+            if(bar) bar.style.width = (step / 4) * 100 + '%';
         }
 
-        function tryPrev(target) {
-            document.getElementById('step' + currentStep).classList.remove('active');
-            document.getElementById('step' + target).classList.add('active');
-            currentStep = target;
+        // 验证输入是否为空（带抖动特效）
+        function validateInput(step) {
+            const el = document.getElementById('q' + step);
+            if (!el || !el.value.trim()) {
+                if(el) {
+                    el.classList.add('shake');
+                    el.focus();
+                    setTimeout(() => el.classList.remove('shake'), 300);
+                }
+                return false;
+            }
+            return true;
         }
 
+        // 下一步
+        function nextStep(targetStep) {
+            if (validateInput(currentStep)) {
+                document.getElementById('step' + currentStep).classList.remove('active');
+                document.getElementById('step' + targetStep).classList.add('active');
+                currentStep = targetStep;
+                updateProgress(currentStep);
+            }
+        }
+
+        // 上一步
+        function prevStep(targetStep) {
+            document.getElementById('step' + currentStep).classList.remove('active');
+            document.getElementById('step' + targetStep).classList.add('active');
+            currentStep = targetStep;
+            updateProgress(currentStep);
+        }
+
+        // 提交表单
         async function submitFlow() {
-            const el = document.getElementById('q4');
-            if (!el.value.trim()) { alert("请填写最后一步"); return; }
-
-            // 隐藏输入，显示 Loading
+            if (!validateInput(4)) return;
+            
+            // 获取数据
+            const q1 = document.getElementById('q1').value;
+            const q2 = document.getElementById('q2').value;
+            const q3 = document.getElementById('q3').value;
+            const q4 = document.getElementById('q4').value;
+            
+            // 显示 Loading 界面
             document.getElementById('loading-view').style.display = 'flex';
 
             try {
                 const response = await fetch('/api/proxy', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        Q1: document.getElementById('q1').value,
-                        Q2: document.getElementById('q2').value,
-                        Q3: document.getElementById('q3').value,
-                        Q4: document.getElementById('q4').value
-                    })
+                    body: JSON.stringify({ Q1: q1, Q2: q2, Q3: q3, Q4: q4 })
                 });
-                
+
                 const resJson = await response.json();
                 
-                // 数据解析
-                let imgUrl = "";
+                if (resJson.code !== 0) throw new Error(resJson.msg || '连接失败');
+
+                // 智能解析返回数据
+                let workflowData;
                 try {
-                    // 兼容各种奇怪的数据格式
-                    let data = resJson.data;
-                    if (typeof data === 'string') data = JSON.parse(data);
-                    
-                    if (data.output && data.output.url) imgUrl = data.output.url;
-                    else if (typeof data.output === 'string') imgUrl = data.output;
-                    else if (data.image && data.image.url) imgUrl = data.image.url;
-                    
-                    if (!imgUrl) throw new Error("无法解析图片地址");
-                } catch (e) {
-                    throw new Error("数据解析失败: " + e.message);
+                    workflowData = JSON.parse(resJson.data);
+                } catch(e) {
+                    workflowData = resJson.data;
                 }
 
-                document.getElementById('final-image').src = imgUrl;
-                document.getElementById('final-image').onload = function() {
+                let imageUrl = '';
+                if (workflowData && workflowData.output) {
+                    if (typeof workflowData.output === 'string') imageUrl = workflowData.output;
+                    else if (workflowData.output.url) imageUrl = workflowData.output.url;
+                    else { try { imageUrl = JSON.parse(workflowData.output).url; } catch(e){} }
+                }
+
+                if (!imageUrl) throw new Error('生成失败，请重试');
+
+                // 图片预加载
+                const img = document.getElementById('final-image');
+                img.src = imageUrl;
+                img.onload = () => {
                     document.getElementById('loading-view').style.display = 'none';
                     document.getElementById('input-view').style.display = 'none';
-                    document.getElementById('result-area').style.display = 'flex';
+                    document.querySelector('.progress-container').style.display = 'none';
+                    document.getElementById('result-area').style.display = 'block';
                 }
 
             } catch (error) {
+                console.error(error); // 仅在控制台记录日志，不干扰用户
                 document.getElementById('loading-view').style.display = 'none';
-                alert("❌ 生成失败: " + error.message);
+                // 给用户一个温柔的提示，而不是硬核的报错
+                alert('连接心灵通道时稍微有些拥堵，请稍后再试一下 ✨');
             }
+        }
+
+        // 重置
+        function reset() {
+            ['q1','q2','q3','q4'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('result-area').style.display = 'none';
+            document.getElementById('input-view').style.display = 'flex';
+            document.querySelector('.progress-container').style.display = 'block';
+            
+            document.getElementById('step' + currentStep).classList.remove('active');
+            document.getElementById('step1').classList.add('active');
+            currentStep = 1; 
+            updateProgress(1);
         }
     </script>
 </body>
